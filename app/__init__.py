@@ -14,6 +14,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://lab5:lab5@localhost/lab5"
 db = SQLAlchemy(app)
 lm = LoginManager()
 lm.init_app(app)
+lm.login_view='login'
 oid = OpenID(app,'/tmp')
 
 from app import views

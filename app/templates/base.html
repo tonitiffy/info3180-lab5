@@ -34,6 +34,22 @@
   <header>
     {% include "header.html" %}
   </header>
+  
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+        
+        {% for message in messages %}
+          <div class="alert alert-info">
+            <ul>
+                <li>
+                    {{ message }}
+                </li>
+            </ul>
+          </div>
+        {% endfor %}
+        
+    {% endif %}
+  {% endwith %}   
 
   <div id="main" role="main">
     {% block main %}{% endblock %}

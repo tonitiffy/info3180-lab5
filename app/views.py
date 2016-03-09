@@ -7,94 +7,60 @@ This file creates your application.
 """
 
 from app import app
-from flask import render_template, request, redirect, url_for,jsonify,g,session
+from flask import render_template, request, redirect, url_for,jsonify,g,session, flash
 from app import db
 
 from flask.ext.wtf import Form 
 from wtforms.fields import TextField # other fields include PasswordField 
 from wtforms.validators import Required, Email
-from app.models import Myprofile
+from app.models import User
 from app.forms import LoginForm
 
 from flask.ext.login import login_user, logout_user, current_user, login_required
-from app import app, db, lm, oid
-from app import oid, lm
+from app import app, db, lm
 
-class ProfileForm(Form):
-     first_name = TextField('First Name', validators=[Required()])
-     last_name = TextField('Last Name', validators=[Required()])
-     # evil, don't do this
-     image = TextField('Image', validators=[Required(), Email()])
-
-
-@app.before_request
-def before_request():
-    g.user = current_user
     
 ###
 # Routing for your application.
 ###
-@app.route('/login', methods=['GET', 'POST'])
-@oid.loginhandler
-def login():
-    form = LoginForm()
-    if request.method == "POST":
-        pass
-    # change this to actually validate the user
-    if form.username.data:
-        # login and validate the user...
-
-        # missing
-        # based on password and username
-        # get user id, load into session
-        user = load_user("1")
-        login_user(user)
-        #flash("Logged in successfully.")
-        return redirect(request.args.get("next") or url_for("home"))
-    return render_template("login.html", form=form)
-    
 @app.route('/')
 def home():
     """Render website's home page."""
     return render_template('home.html')
 
-@app.route('/profile/', methods=['POST','GET'])
-def profile_add():
-    if request.method == 'POST':
-        first_name = request.form['first_name']
-        last_name = request.form['last_name']
-
-        # write the information to the database
-        newprofile = Myprofile(first_name=first_name,
-                               last_name=last_name)
-        db.session.add(newprofile)
-        db.session.commit()
-
-        return "{} {} was added to the database".format(request.form['first_name'],
-                                             request.form['last_name'])
-
-    form = ProfileForm()
-    return render_template('profile_add.html',
-                           form=form)
-
-@app.route('/profiles/',methods=["POST","GET"])
-def profile_list():
-    profiles = Myprofile.query.all()
-    if request.method == "POST":
-        return jsonify({"age":4, "name":"John"})
-    return render_template('profile_list.html',
-                            profiles=profiles)
-
-@app.route('/profile/<int:id>')
-def profile_view(id):
-    profile = Myprofile.query.get(id)
-    return render_template('profile_view.html',profile=profile)
-
-
 @app.route('/about/')
+@login_required
 def about():
     """Render the website's about page."""
     return render_template('about.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(username=form.username.data).first()
+        if user is not None and user.password_hash == form.password.data:
+            login_user(user, form.remember_me.data)
+            flash('Successfully logged in!')
+            return redirect(request.args.get('next') or url_for('home'))
+        flash('Invalid username or password.')
+    return render_template('login.html', form=form)
+    
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('You have been logged out.')
+    return redirect(url_for('home'))
+    
+@lm.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+    
+@app.before_request
+def before_request():
+    g.user = current_user
+    
 
 
 ###
